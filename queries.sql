@@ -139,6 +139,29 @@ INNER JOIN main_sales_id m ON s.sales_id = m.main_id
 ORDER BY c.customer_id;
 
 
-	
+-- SPECIAL_OFFER --
+WITH rang AS (
+    SELECT 
+        s.customer_id,
+        s.sale_date,
+        s.sales_person_id,
+        s.product_id,
+        -- тут присваем номера строкам через оконную функцию, разбивая записи по "customer_id"
+        -- и сортируем с самых первых дат
+        ROW_NUMBER() OVER (PARTITION BY s.customer_id ORDER BY s.sale_date) AS rn
+    FROM sales s
+)
+SELECT 
+    c.first_name || ' ' || c.last_name AS customer,
+    r.sale_date,
+    e.first_name || ' ' || e.last_name AS seller
+FROM rang r
+JOIN products p ON p.product_id = r.product_id
+JOIN customers c ON c.customer_id = r.customer_id
+JOIN employees e ON e.employee_id = r.sales_person_id
+-- описания главного условия: первая строка (т.е. первая покупка) с ценой 0
+WHERE r.rn = 1 AND p.price = 0
+ORDER BY c.customer_id;
+
 
 
