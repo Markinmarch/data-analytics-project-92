@@ -4,6 +4,7 @@ SELECT COUNT(*) AS customers_count FROM customers;
 --TASK 5--
 -------------------------------------------------------------------------------
 SELECT
+-- TOP_10_TOTAL_INCOME --
 	--получаем имя, фамилию продавца
 	--количество совершённых продаж
 	--общая выручка от продаж
@@ -21,22 +22,40 @@ ORDER BY income desc
 LIMIT 10
 ;
 
-SELECT 
-	e.first_name || ' ' || e.last_name AS seller,
-	--получаем среднюю выручку продавца за сделку
-	FLOOR(SUM(p.price * quantity)/COUNT(s.sales_id)) AS average_income
-FROM sales s
-INNER JOIN employees e ON s.sales_person_id = e.employee_id
-INNER JOIN products p ON p.product_id = s.product_id 
-GROUP BY e.first_name, e.last_name
---сортируем по возрастанию средней выручки продавца
+WITH 
+	-- сначала найдём общую стоимость средней сделки
+	average_income_all AS (
+	SELECT
+		FLOOR(SUM(p.price * s.quantity)/COUNT(s.sales_id)) AS main_average_income
+	FROM sales s
+	INNER JOIN products p ON p.product_id = s.product_id 
+	),
+	averages AS (
+	SELECT 
+	-- LOWEST_AVERAGE_INCOME --
+		e.first_name || ' ' || e.last_name AS seller,
+		--получаем среднюю выручку продавца за сделку
+		FLOOR(SUM(p.price * quantity)/COUNT(s.sales_id)) AS average_income
+	FROM sales s
+	INNER JOIN employees e ON s.sales_person_id = e.employee_id
+	INNER JOIN products p ON p.product_id = s.product_id
+	GROUP BY e.first_name, e.last_name
+	)
+-- теперь можем найти худших продавцов
+SELECT
+	seller,
+	average_income
+FROM average_income_all, averages
+WHERE average_income < main_average_income
+-- сортируем по возрастанию средней выручки продавца
 ORDER BY average_income
 ;
 
-SELECT
-    e.first_name || ' ' || e.last_name AS seller,
+SELECT 
+-- DAY_OF_THE_WEEK_INCOME --
+	e.first_name || ' ' || e.last_name AS seller,
     --преобразовываем дату в название дня недели
-    TO_CHAR(s.sale_date::DATE, 'Day') AS day_of_week,
+    REPLACE(LOWER(TO_CHAR(s.sale_date::DATE, 'Day')), ' ', '') AS day_of_week,
     FLOOR(SUM(p.price * quantity)) AS income
 FROM sales s
 INNER JOIN employees e ON s.sales_person_id = e.employee_id
@@ -56,14 +75,15 @@ ORDER by
 
 --TASK 6--
 -----------------------------------------------------------------------------------------------
-SELECT
+SELECT 
+-- AGE_GROUPS --
 	-- оператор CASE с условиями для присвоения группы
 	CASE
 		WHEN age BETWEEN 16 AND 25 THEN '16-25'
 		WHEN age BETWEEN 26 AND 40 THEN '26-40'
 		WHEN age > 40 THEN '40+'
 	END AS age_category,
-	COUNT(*)
+	COUNT(*) as age_count
 FROM customers
 -- условия распределения возрастной группы
 WHERE
@@ -75,6 +95,7 @@ ORDER BY age_category
 ;
 
 SELECT 
+-- CUSTOMERS_BY_MONTH --
 	-- выделяем год и месяц,
 	-- берём общее количество уникальных покупателей
 	-- суммируем общую выручку
@@ -88,48 +109,36 @@ GROUP BY selling_month
 ORDER BY selling_month
 ;
 
+WITH
+-- SPECIAL_OFFER --
+	-- создаём таблицу, где первая покупака была по акции
+	-- т.е. p.price = 0
+	main_sales_id AS (
+		-- MIN в языке SQL первое значение
+		-- благодаря группировке по "s.customer_id"
+	    SELECT MIN(sales_id) AS main_id
+	    FROM sales s 
+	    INNER JOIN products p ON s.product_id = p.product_id 
+	    WHERE p.price = 0
+	    GROUP BY s.customer_id
+	)
+-- далее составляем основной запрос,
+-- где создаём условие "main_sales_id m ON s.sales_id = m.main_id"
+-- т.е. привязываем значения к id продаж, где первые покупки
+-- покупателей были совершены по акции
 SELECT 
-	--получаем имя покупателя,
-	--дату продажи
-	--и имя продавца
-	c.first_name || ' ' || c.last_name AS customer,
-	sale_date,
-	e.first_name || ' ' || e.last_name AS seller
+    c.first_name || ' ' || c.last_name AS customer,
+    s.sale_date,
+    e.first_name || ' ' || e.last_name AS seller
 FROM sales s
 INNER JOIN customers c ON c.customer_id = s.customer_id
 INNER JOIN employees e ON e.employee_id = s.sales_person_id
 INNER JOIN products p ON p.product_id = s.product_id
--- с условием, что цена товара была 0 денег, т.к. по акции
-WHERE p.price = 0
-;
+INNER JOIN main_sales_id m ON s.sales_id = m.main_id
+-- и группируем по id покупателей
+ORDER BY c.customer_id;
+
+
 	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
