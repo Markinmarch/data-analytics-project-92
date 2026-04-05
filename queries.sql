@@ -106,36 +106,6 @@ GROUP BY selling_month
 ORDER BY selling_month
 ;
 
-WITH
--- SPECIAL_OFFER --
-	-- создаём таблицу, где первая покупака была по акции
-	-- т.е. p.price = 0
-	main_sales_id AS (
-		-- MIN в языке SQL первое значение
-		-- благодаря группировке по "s.customer_id"
-	    SELECT MIN(sales_id) AS main_id
-	    FROM sales s 
-	    INNER JOIN products p ON s.product_id = p.product_id 
-	    WHERE p.price = 0
-	    GROUP BY s.customer_id
-	)
--- далее составляем основной запрос,
--- где создаём условие "main_sales_id m ON s.sales_id = m.main_id"
--- т.е. привязываем значения к id продаж, где первые покупки
--- покупателей были совершены по акции
-SELECT 
-    c.first_name || ' ' || c.last_name AS customer,
-    s.sale_date,
-    e.first_name || ' ' || e.last_name AS seller
-FROM sales s
-INNER JOIN customers c ON c.customer_id = s.customer_id
-INNER JOIN employees e ON e.employee_id = s.sales_person_id
-INNER JOIN products p ON p.product_id = s.product_id
-INNER JOIN main_sales_id m ON s.sales_id = m.main_id
--- и группируем по id покупателей
-ORDER BY c.customer_id;
-
-
 -- SPECIAL_OFFER --
 WITH rang AS (
     SELECT 
@@ -158,7 +128,5 @@ JOIN customers c ON c.customer_id = r.customer_id
 JOIN employees e ON e.employee_id = r.sales_person_id
 -- описания главного условия: первая строка (т.е. первая покупка) с ценой 0
 WHERE r.rn = 1 AND p.price = 0
-ORDER BY c.customer_id;
-
-
-
+ORDER BY c.customer_id
+;
