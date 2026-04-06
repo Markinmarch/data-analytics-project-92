@@ -19,20 +19,20 @@ ORDER BY income desc
 LIMIT 10
 ;
 
+-- LOWEST_AVERAGE_INCOME --
 WITH 
 	-- сначала найдём общую стоимость средней сделки
 	average_income_all AS (
 	SELECT
-		FLOOR(SUM(p.price * s.quantity)/COUNT(s.sales_id)) AS main_average_income
+		FLOOR(AVG(p.price * s.quantity)) AS main_average_income
 	FROM sales s
 	INNER JOIN products p ON p.product_id = s.product_id 
 	),
 	averages AS (
 	SELECT 
-	-- LOWEST_AVERAGE_INCOME --
 		e.first_name || ' ' || e.last_name AS seller,
 		--получаем среднюю выручку продавца за сделку
-		FLOOR(SUM(p.price * quantity)/COUNT(s.sales_id)) AS average_income
+		FLOOR(AVG(p.price * s.quantity)) AS average_income
 	FROM sales s
 	INNER JOIN employees e ON s.sales_person_id = e.employee_id
 	INNER JOIN products p ON p.product_id = s.product_id
@@ -128,5 +128,4 @@ JOIN customers c ON c.customer_id = r.customer_id
 JOIN employees e ON e.employee_id = r.sales_person_id
 -- описания главного условия: первая строка (т.е. первая покупка) с ценой 0
 WHERE r.rn = 1 AND p.price = 0
-ORDER BY c.customer_id
-;
+ORDER BY c.customer_id;
