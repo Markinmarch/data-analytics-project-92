@@ -1,5 +1,5 @@
 --TASK 5--
--------------------------------------------------------------------------------
+-----------------------------------------------------
 -- TOP_10_TOTAL_INCOME --
 SELECT
     --получаем имя, фамилию продавца
@@ -7,7 +7,7 @@ SELECT
     --общая выручка от продаж
     e.first_name || ' ' || e.last_name AS seller,
     COUNT(s.sales_id) AS operations,
-    FLOOR(SUM(p.price * quantity)) AS income
+    FLOOR(SUM(p.price * s.quantity)) AS income
 FROM sales AS s
 --соединяем таблицы по id-шкам
 INNER JOIN employees AS e ON s.sales_person_id = e.employee_id
@@ -40,19 +40,19 @@ averages AS (
 
 -- теперь можем найти худших продавцов
 SELECT
-    seller,
-    average_income
+    averages.seller,
+    averages.average_income
 FROM average_income_all, averages
-WHERE average_income < main_average_income
+WHERE averages.average_income < average_income_all.main_average_income
 -- сортируем по возрастанию средней выручки продавца
-ORDER BY average_income;
+ORDER BY averages.average_income;
 
 -- DAY_OF_THE_WEEK_INCOME --
 SELECT
     e.first_name || ' ' || e.last_name AS seller,
     --преобразовываем дату в название дня недели
     REPLACE(LOWER(TO_CHAR(s.sale_date::DATE, 'Day')), ' ', '') AS day_of_week,
-    FLOOR(SUM(p.price * quantity)) AS income
+    FLOOR(SUM(p.price * s.quantity)) AS income
 FROM sales AS s
 INNER JOIN employees AS e ON s.sales_person_id = e.employee_id
 INNER JOIN products AS p ON s.product_id = p.product_id
@@ -61,7 +61,8 @@ GROUP BY
     e.first_name,
     e.last_name,
     TO_CHAR(s.sale_date, 'Day'),
-    --это специальная функция, которая делает так, что бы день недели начинался с понедельника
+    --это специальная функция, которая делает так,
+    --что бы день недели начинался с понедельника
     EXTRACT(ISODOW FROM s.sale_date)
 --сортируем по дню недели и имени
 ORDER BY
@@ -70,7 +71,7 @@ ORDER BY
 
 
 --TASK 6--
------------------------------------------------------------------------------------------------
+-------------------------------------------------------
 -- AGE_GROUPS --
 SELECT
     -- оператор CASE с условиями для присвоения группы
@@ -110,8 +111,8 @@ WITH rang AS (
         s.sale_date,
         s.sales_person_id,
         s.product_id,
-        -- тут присваем номера строкам через оконную функцию, разбивая записи по "customer_id"
-        -- и сортируем с самых первых дат
+        -- тут присваем номера строкам через оконную функцию, разбивая записи
+        -- по "customer_id" и сортируем с самых первых дат
         ROW_NUMBER()
             OVER (PARTITION BY s.customer_id ORDER BY s.sale_date)
             AS rn
